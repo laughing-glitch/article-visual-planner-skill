@@ -28,6 +28,25 @@ Always preview the parsed jobs before spending API credits:
 python scripts/generate_images.py --prompts-file "文章配图提示词.md" --dry-run
 ```
 
+## Cost Protection
+
+The script has two default protections:
+
+- Existing output images are skipped by default, so rerunning the same command will not regenerate images that already exist.
+- Use `--max-paid-requests` to cap how many paid generation requests this run can submit.
+
+Examples:
+
+```bash
+python scripts/generate_images.py --prompts-file "文章配图提示词.md" --provider openai --output-dir outputs --max-paid-requests 1
+```
+
+If the user really wants to regenerate existing images, they must explicitly add:
+
+```bash
+--overwrite
+```
+
 ## OpenAI API Key
 
 Use when the user has an OpenAI API key and wants OpenAI image generation.

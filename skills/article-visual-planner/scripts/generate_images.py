@@ -16,6 +16,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+import http.client
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -146,6 +147,46 @@ def http_json(url: str, headers: dict[str, str], payload: dict[str, Any], timeou
         raise RuntimeError(f"Request failed for {url}: {exc}") from exc
 
 
+def iter_sse(response: Any) -> Any:
+    buffer = ""
+    while chunk := response.read(4096):
+        buffer += chunk.decode("utf-8", errors="replace")
+        frames = buffer.split("\n\n")
+        buffer = frames.pop()
+        for frame in frames:
+            data = "\n".join(line[5:].strip() for line in frame.splitlines() if line.startswith("data:")).strip()
+            if data and data != "[DONE]":
+                yield data
+
+
+def http_sse_image(url: str, headers: dict[str, str], payload: dict[str, Any], timeout: int) -> bytes:
+    data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    request = urllib.request.Request(url, data=data, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            for item in iter_sse(response):
+                event = json.loads(item)
+                if event.get("type") == "image_generation.completed":
+                    image = event.get("b64_json") or (event.get("data") or [{}])[0].get("b64_json")
+                    if not image:
+                        raise RuntimeError(f"Completed image event did not include base64 image data: {event}")
+                    return base64.b64decode(image)
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"HTTP {exc.code} from {url}: {body}") from exc
+    except (urllib.error.URLError, http.client.IncompleteRead) as exc:
+        raise RuntimeError(f"Request failed for {url}: {exc}") from exc
+    raise RuntimeError("SSE stream ended before image_generation.completed.")
+
+
+def api_size_for_job(job: ImageJob, args: argparse.Namespace) -> str | None:
+    if job.kind == "cover" and args.cover_api_size:
+        return args.cover_api_size
+    if job.kind == "body" and args.body_api_size:
+        return args.body_api_size
+    return args.api_size
+
+
 def generate_openai(job: ImageJob, args: argparse.Namespace, api_key: str) -> bytes:
     base_url = args.base_url.rstrip("/") if args.base_url else "https://api.openai.com/v1"
     payload: dict[str, Any] = {
@@ -154,8 +195,9 @@ def generate_openai(job: ImageJob, args: argparse.Namespace, api_key: str) -> by
         "quality": args.quality,
         "n": 1,
     }
-    if args.api_size:
-        payload["size"] = args.api_size
+    api_size = api_size_for_job(job, args)
+    if api_size:
+        payload["size"] = api_size
     if args.output_format:
         payload["output_format"] = args.output_format
     headers = {
@@ -215,6 +257,24 @@ def prompt_with_ratio(job: ImageJob) -> str:
 def generate_relay(job: ImageJob, args: argparse.Namespace, api_key: str) -> bytes:
     if not args.base_url:
         raise ValueError("--base-url is required when --provider relay")
+    if args.relay_stream:
+        base_url = args.base_url.rstrip("/")
+        payload: dict[str, Any] = {
+            "model": args.model or DEFAULT_RELAY_MODEL,
+            "prompt": prompt_with_ratio(job),
+            "n": 1,
+            "stream": True,
+            "response_format": "b64_json",
+        }
+        api_size = api_size_for_job(job, args)
+        if api_size:
+            payload["size"] = api_size
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "Accept": "text/event-stream",
+        }
+        return http_sse_image(f"{base_url}/images/generations", headers, payload, args.timeout)
     relay_args = argparse.Namespace(**vars(args))
     relay_args.model = args.model or DEFAULT_RELAY_MODEL
     return generate_openai(job, relay_args, api_key)
@@ -295,12 +355,22 @@ def build_parser() -> argparse.ArgumentParser:
         "--api-size",
         help="Optional provider-specific OpenAI/relay size. Leave empty to request by ratio in the prompt.",
     )
+    parser.add_argument("--cover-api-size", help="Provider request size for cover jobs before local normalization.")
+    parser.add_argument("--body-api-size", help="Provider request size for body jobs before local normalization.")
     parser.add_argument("--google-image-size", default="1K", help="Google image size hint, for example 1K, 2K, or 4K.")
     parser.add_argument("--quality", default="medium", choices=["low", "medium", "high", "auto"])
     parser.add_argument("--output-format", default="png", choices=["png", "jpeg", "webp"])
+    parser.add_argument("--relay-stream", action="store_true", help="Use OpenAI-compatible streaming image SSE.")
     parser.add_argument("--sleep", type=float, default=1.0, help="Seconds to wait between jobs.")
     parser.add_argument("--timeout", type=int, default=180)
+    parser.add_argument("--start-index", type=int, default=1, help="Start from the 1-based parsed job index.")
     parser.add_argument("--limit", type=int, help="Generate only the first N images.")
+    parser.add_argument("--max-paid-requests", type=int, help="Stop before sending more than this many generation requests.")
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Regenerate images even when the output file already exists.",
+    )
     parser.add_argument("--dry-run", action="store_true", help="Parse and print jobs without calling APIs.")
     parser.add_argument("--keep-raw", action="store_true", help="Keep raw provider images before final crop.")
     return parser
@@ -316,6 +386,8 @@ def main() -> int:
             args.cover_final_size,
             args.body_final_size,
         )
+        if args.start_index > 1:
+            jobs = [job for job in jobs if job.index >= args.start_index]
         if args.limit:
             jobs = jobs[: args.limit]
 
@@ -334,8 +406,33 @@ def main() -> int:
             raw_dir.mkdir(parents=True, exist_ok=True)
 
         manifest: list[dict[str, Any]] = []
+        paid_requests = 0
         for offset, job in enumerate(jobs):
+            filename = f"{job.index:02d}-{job.kind}-{slugify(job.title)}.png"
+            final_path = args.output_dir / filename
+            if final_path.exists() and not args.overwrite:
+                print(f"\nSkipping {job.index:02d}: {job.title}")
+                print(f"Exists: {final_path}")
+                manifest.append(
+                    {
+                        "index": job.index,
+                        "title": job.title,
+                        "kind": job.kind,
+                        "provider": args.provider,
+                        "model": args.model,
+                        "ratio": job.ratio,
+                        "final_size": f"{job.final_size[0]}x{job.final_size[1]}" if job.final_size else None,
+                        "path": str(final_path),
+                        "skipped_existing": True,
+                    }
+                )
+                continue
+            if args.max_paid_requests is not None and paid_requests >= args.max_paid_requests:
+                print(f"\nStopped before {job.index:02d}: max paid request limit reached.")
+                break
+
             print(f"\nGenerating {job.index:02d}: {job.title}")
+            paid_requests += 1
             if args.provider == "openai":
                 image_bytes = generate_openai(job, args, api_key)
             elif args.provider == "google":
@@ -343,8 +440,6 @@ def main() -> int:
             else:
                 image_bytes = generate_relay(job, args, api_key)
 
-            filename = f"{job.index:02d}-{job.kind}-{slugify(job.title)}.png"
-            final_path = args.output_dir / filename
             if job.final_size:
                 raw_path = raw_dir / filename if args.keep_raw else args.output_dir / f".raw-{filename}"
                 save_raw_image(image_bytes, raw_path)
