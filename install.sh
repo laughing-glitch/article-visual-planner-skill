@@ -3,7 +3,11 @@ set -euo pipefail
 
 SKILL_NAME="article-visual-planner"
 INSTALL_DIR="${CODEX_HOME:-$HOME/.codex}/skills"
-SCRIPT_PATH="${BASH_SOURCE[0]:-$0}"
+if [ "${#BASH_SOURCE[@]}" -gt 0 ]; then
+  SCRIPT_PATH="${BASH_SOURCE[0]}"
+else
+  SCRIPT_PATH="$0"
+fi
 SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" 2>/dev/null && pwd || pwd)"
 SOURCE_DIR="$SCRIPT_DIR/skills/$SKILL_NAME"
 TARGET_DIR="$INSTALL_DIR/$SKILL_NAME"
