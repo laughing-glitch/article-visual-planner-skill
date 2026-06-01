@@ -6,7 +6,7 @@ INSTALL_DIR="${CODEX_HOME:-$HOME/.codex}/skills"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOURCE_DIR="$SCRIPT_DIR/skills/$SKILL_NAME"
 TARGET_DIR="$INSTALL_DIR/$SKILL_NAME"
-REPO_TARBALL_URL="${REPO_TARBALL_URL:-https://github.com/YOUR_GITHUB_USERNAME/article-visual-planner-skill/archive/refs/heads/main.tar.gz}"
+REPO_TARBALL_URL="${REPO_TARBALL_URL:-https://github.com/laughing-glitch/article-visual-planner-skill/archive/refs/heads/main.tar.gz}"
 
 TMP_DIR=""
 

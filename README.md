@@ -16,7 +16,7 @@
 打开终端，运行：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/article-visual-planner-skill/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/laughing-glitch/article-visual-planner-skill/main/install.sh | bash
 ```
 
 安装完成后，新建对话，直接说：
