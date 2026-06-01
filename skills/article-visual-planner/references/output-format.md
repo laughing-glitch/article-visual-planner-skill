@@ -74,13 +74,14 @@ Each image prompt must include:
 
 1. Opening line: `【重要说明】请独立生成1张[风格定性]图片`
 2. Canvas ratio
-3. Visual role: cover, explanation, comparison, summary, scene, workflow, etc.
-4. Color rules with exact hex values
-5. Typography rules
-6. Page structure from top to bottom or foreground to background
-7. Text to display, locked with backticks
-8. Illustration/icon/photo guidance bound to the text block it supports
-9. Negative constraints
+3. Image clarity requirement: `2K 清晰度，高清细节，文字边缘清晰，适合公众号发布`
+4. Visual role: cover, explanation, comparison, summary, scene, workflow, etc.
+5. Color rules with exact hex values
+6. Typography rules
+7. Page structure from top to bottom or foreground to background
+8. Text to display, locked with backticks
+9. Illustration/icon/photo guidance bound to the text block it supports
+10. Negative constraints
 
 ## Text Locking Rule
 

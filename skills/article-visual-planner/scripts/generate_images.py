@@ -250,7 +250,8 @@ def prompt_with_ratio(job: ImageJob) -> str:
     return (
         job.prompt
         + f"\n\nGenerate one final image using aspect ratio {job.ratio}. "
-        + "Prioritize matching this ratio over a fixed pixel size."
+        + "Prioritize matching this ratio over a fixed pixel size. "
+        + "Render at 2K clarity with crisp details and sharp, readable text edges."
     )
 
 
@@ -357,7 +358,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--cover-api-size", help="Provider request size for cover jobs before local normalization.")
     parser.add_argument("--body-api-size", help="Provider request size for body jobs before local normalization.")
-    parser.add_argument("--google-image-size", default="1K", help="Google image size hint, for example 1K, 2K, or 4K.")
+    parser.add_argument("--google-image-size", default="2K", help="Google image size hint, for example 1K, 2K, or 4K.")
     parser.add_argument("--quality", default="medium", choices=["low", "medium", "high", "auto"])
     parser.add_argument("--output-format", default="png", choices=["png", "jpeg", "webp"])
     parser.add_argument("--relay-stream", action="store_true", help="Use OpenAI-compatible streaming image SSE.")

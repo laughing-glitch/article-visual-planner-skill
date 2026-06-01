@@ -109,8 +109,9 @@ python scripts/generate_images.py --prompts-file "文章配图提示词.md" --pr
 - Cover prompts default to `2.35:1`.
 - Body prompts default to `16:9`.
 - The script passes each target ratio to providers by default.
-- For Google, the script passes the target aspect ratio and a clarity-level hint.
-- For OpenAI-compatible providers, the script writes the target ratio into the prompt and only passes a provider-specific size if the user explicitly sets `--api-size`.
+- Each API prompt also includes a `2K clarity` requirement so providers understand the intended output quality even when exact pixel sizes differ.
+- For Google, the script passes the target aspect ratio and uses `2K` as the default image size hint.
+- For OpenAI-compatible providers, the script writes the target ratio and 2K clarity requirement into the prompt, and only passes a provider-specific size if the user explicitly sets `--api-size`.
 - If the user explicitly needs fixed pixel exports, they can use optional local normalization flags. Do not introduce these flags in the normal beginner flow.
 
 ## Safety
