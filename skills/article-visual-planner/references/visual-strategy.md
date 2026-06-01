@@ -35,10 +35,10 @@ Choose the primary job of images:
 
 ## Planning Rules
 
-- Recommend 2-5 body images for normal long-form articles.
+- Recommend 2-5正文配图 for normal long-form articles.
 - Use fewer images for opinion or story articles; use more for tutorial and framework articles.
 - Keep one style system across all images.
-- Separate cover and body roles: the cover attracts; body images explain.
+- Separate cover and正文配图 roles: the cover attracts; article illustrations explain.
 - Avoid overusing cold futuristic tech style for beginner-facing AI content unless the article tone is advanced.
 - Prefer visual metaphors that make the user's current difficulty and desired result concrete.
 

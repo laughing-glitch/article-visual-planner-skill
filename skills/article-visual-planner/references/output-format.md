@@ -102,8 +102,8 @@ Bad:
 
 - Cover image: always use `2.35:1`
 - Body images default: use `16:9`
-- Use `4:3` when the body image needs more vertical space for frameworks, checklists, or process diagrams
-- Keep all body images the same ratio unless the user asks otherwise
+- Use `4:3` when a正文配图 needs more vertical space for frameworks, checklists, or process diagrams
+- Keep all正文配图 images the same ratio unless the user asks otherwise
 - Avoid writing fixed pixel dimensions in prompts unless the user explicitly asks for a specific platform export size
 
 ## Structure Rules
@@ -111,4 +111,4 @@ Bad:
 - Do not say only "put it on the left"; specify container, area, proportion, and relationship.
 - Bind illustration and text: "[text] with a small illustration of [specific visual] beside/above/inside the same card."
 - Use clear sectioning for information-heavy images.
-- Keep body image text concise; each block should normally be under 20 Chinese characters.
+- Keep正文配图 text concise; each block should normally be under 20 Chinese characters.
