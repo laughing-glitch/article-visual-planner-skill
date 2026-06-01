@@ -3,8 +3,8 @@ set -euo pipefail
 
 SKILL_NAME="article-visual-planner"
 INSTALL_DIR="${CODEX_HOME:-$HOME/.codex}/skills"
-if [ "${#BASH_SOURCE[@]}" -gt 0 ]; then
-  SCRIPT_PATH="${BASH_SOURCE[0]}"
+if [ -n "${BASH_SOURCE:-}" ]; then
+  SCRIPT_PATH="$BASH_SOURCE"
 else
   SCRIPT_PATH="$0"
 fi
