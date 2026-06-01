@@ -3,7 +3,8 @@ set -euo pipefail
 
 SKILL_NAME="article-visual-planner"
 INSTALL_DIR="${CODEX_HOME:-$HOME/.codex}/skills"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_PATH="${BASH_SOURCE[0]:-$0}"
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" 2>/dev/null && pwd || pwd)"
 SOURCE_DIR="$SCRIPT_DIR/skills/$SKILL_NAME"
 TARGET_DIR="$INSTALL_DIR/$SKILL_NAME"
 REPO_TARBALL_URL="${REPO_TARBALL_URL:-https://github.com/laughing-glitch/article-visual-planner-skill/archive/refs/heads/main.tar.gz}"
